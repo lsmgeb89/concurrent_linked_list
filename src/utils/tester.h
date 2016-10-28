@@ -61,13 +61,14 @@ class TestThroughput {
   std::array<OpThroughput, 3> profile_;
 };
 
-#define CALL_FUNC_IF_MATCH(FUNC_NAME)                                 \
-if (operation.type_ == FUNC_NAME) {                                   \
-  debug_clog << linked_list_.name_                                    \
-             << "::"#FUNC_NAME"(" << operation.parameter_ << ")\n";   \
-  ret = linked_list_.FUNC_NAME(operation.parameter_);                 \
-  debug_clog << linked_list_.name_                                    \
-             << "::"#FUNC_NAME" = " << std::boolalpha << ret << "\n"; \
+#define CALL_FUNC_IF_MATCH(FUNC_NAME)                               \
+if (operation.type_ == FUNC_NAME) {                                 \
+  debug_clog << "[thread " << id << "] " << linked_list_.name_      \
+             << "::"#FUNC_NAME"(" << operation.parameter_ << ")\n"; \
+  ret = linked_list_.FUNC_NAME(operation.parameter_);               \
+  debug_clog << "[thread " << id << "] " << linked_list_.name_      \
+             << "::"#FUNC_NAME"(" << operation.parameter_ << ") = " \
+             << std::boolalpha << ret << "\n";                      \
 }
 
 template <typename ListType> class UnitTester {
@@ -77,7 +78,7 @@ template <typename ListType> class UnitTester {
 
   static std::string GetName(void) { return ListType::name_; }
 
-  void ThreadFunc(const std::vector<TestOperation>& operation_list) {
+  void ThreadFunc(const std::size_t& id, const std::vector<TestOperation>& operation_list) {
     bool ret;
     for (auto operation : operation_list) {
       CALL_FUNC_IF_MATCH(Search)
@@ -89,8 +90,8 @@ template <typename ListType> class UnitTester {
   TestResult UnitTest(const std::vector<std::vector<TestOperation>>& operation_list_group) {
     auto begin = std::chrono::steady_clock::now();
 
-    for (auto operation_list : operation_list_group) {
-      this->thread_pool.emplace_back([this, operation_list] { this->ThreadFunc(operation_list); });
+    for (std::size_t i(0); i < operation_list_group.size(); i++) {
+      this->thread_pool.emplace_back([this, operation_list_group, i] { this->ThreadFunc(i, operation_list_group.at(i)); });
     }
 
     for (auto& thread : thread_pool) {
