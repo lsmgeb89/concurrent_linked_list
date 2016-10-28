@@ -20,7 +20,7 @@ class LazyLinkedList {
     while (curr != &tail_) {
       tmp = curr;
       curr = curr->next_;
-      std::cout << "free " << tmp->val_ << std::endl;
+      debug_clog << "~LazyLinkedList free " << tmp->val_ << std::endl;
       delete tmp;
     }
   }
@@ -77,7 +77,7 @@ class LazyLinkedList {
           curr->marked_ = true;
           pred->next_ = curr->next_;
           // TODO: find a way to delete it
-          delete curr;
+          // delete curr;
           return true;
         }
       }
@@ -117,6 +117,9 @@ class LazyLinkedList {
     LockedListNode* curr(window.second);
     return (!pred->marked_ && !curr->marked_ && pred->next_ == curr);
   }
+
+ public:
+  static constexpr auto name_ = "LazyLinkedList";
 };
 
 } // namespace utils

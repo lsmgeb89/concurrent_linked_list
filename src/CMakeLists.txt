@@ -11,7 +11,9 @@ add_executable(concurrent_linked_list
   utils/coarse_grained_linked_list.h
   utils/fine_grained_linked_list.h
   utils/lock_free_linked_list.h
-  utils/list_node.h)
+  utils/list_node.h
+  utils/tester.h
+  utils/log_util.h)
 
 target_include_directories(concurrent_linked_list PRIVATE utils)
 

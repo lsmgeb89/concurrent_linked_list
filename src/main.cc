@@ -1,38 +1,39 @@
-#include <cassert>
-#include <iostream>
-#include "coarse_grained_linked_list.h"
-#include "fine_grained_linked_list.h"
-#include "lock_free_linked_list.h"
-
-template <typename ListType>
-void simple_test(ListType& test_list) {
-  assert(!test_list.Delete(2));
-  assert(!test_list.Search(3));
-  test_list.Insert(4);
-  assert(!test_list.Delete(2));
-  assert(!test_list.Search(3));
-  test_list.Insert(10);
-  assert(test_list.Delete(4));
-  assert(test_list.Search(10));
-  assert(test_list.Delete(10));
-  test_list.Insert(19);
-  test_list.Insert(20);
-  test_list.Insert(17);
-  std::cout << test_list.ToString() << std::endl;
-  assert(test_list.Delete(20));
-  std::cout << test_list.ToString() << std::endl;
-  assert(test_list.Delete(17));
-  std::cout << test_list.ToString() << std::endl;
-};
+#include <cstdlib>
+#include "tester.h"
 
 int main(int argc, char* argv[]) {
-  utils::LockedLinkedList list_1;
-  utils::LazyLinkedList list_2;
-  utils::LockFreeLinkedList list_3;
+  std::size_t thread_num(0);
+  std::size_t operation_num(0);
+  std::size_t test_times(0);
 
-  simple_test(list_1);
-  simple_test(list_2);
-  simple_test(list_3);
+  if (argc != 4) {
+    std::cerr << "Wrong Parameter!" << std::endl;
+    std::string p(argv[0]);
+    std::cerr << p.substr(p.rfind('/') + 1)
+              << " <thread_num> <operation_num> <test_times>" << std::endl;
+    return EXIT_FAILURE;
+  } else {
+    thread_num = static_cast<std::size_t>(std::stoul(argv[1]));
+    operation_num = static_cast<std::size_t>(std::stoul(argv[2]));
+    test_times = static_cast<std::size_t>(std::stoul(argv[3]));
+  }
 
-  return 0;
+  utils::TestThroughput thru_read("read-dominated",
+                                  {std::make_pair(utils::Search, 0.9f),
+                                   std::make_pair(utils::Insert, 0.09f),
+                                   std::make_pair(utils::Delete, 0.01f)});
+  utils::TestThroughput thru_mix("mixed",
+                                 {std::make_pair(utils::Search, 0.7f),
+                                  std::make_pair(utils::Search, 0.2f),
+                                  std::make_pair(utils::Delete, 0.1f)});
+  utils::TestThroughput thru_write("write-dominated",
+                                   {std::make_pair(utils::Search, 0.0f),
+                                    std::make_pair(utils::Insert, 0.5f),
+                                    std::make_pair(utils::Delete, 0.5f)});
+  std::vector<utils::TestThroughput> v = {thru_read, thru_mix, thru_write};
+  utils::Tester t(thread_num, operation_num, test_times, v);
+  t.Test();
+  debug_cout << t.ResultToString();
+
+  return EXIT_SUCCESS;
 }

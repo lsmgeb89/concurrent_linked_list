@@ -5,6 +5,7 @@
 #include <mutex>
 #include <sstream>
 #include "list_node.h"
+#include "log_util.h"
 
 namespace utils {
 
@@ -20,7 +21,7 @@ class LockedLinkedList {
     while (curr != &tail_) {
       tmp = curr;
       curr = curr->next_;
-      std::cout << "free " << tmp->val_ << std::endl;
+      debug_clog << "~LockedLinkedList free " << tmp->val_ << std::endl;
       delete tmp;
     }
   }
@@ -36,7 +37,7 @@ class LockedLinkedList {
     return false;
   }
 
-  void Insert(const int& value) {
+  bool Insert(const int& value) {
     std::lock_guard<std::mutex> guard(mutex_);
     ListNode* pred(&head_);
     ListNode* curr(head_.next_);
@@ -48,6 +49,8 @@ class LockedLinkedList {
       pred = pred->next_;
       curr = curr->next_;
     }
+    // always return true for testing
+    return true;
   }
 
   bool Delete(const int& value) {
@@ -83,6 +86,9 @@ class LockedLinkedList {
   std::mutex mutex_;
   ListNode head_;
   ListNode tail_;
+
+ public:
+  static constexpr auto name_ = "LockedLinkedList";
 };
 
 } // namespace utils

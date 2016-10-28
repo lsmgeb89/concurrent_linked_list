@@ -5,6 +5,7 @@
 #include <limits>
 #include <sstream>
 #include "list_node.h"
+#include "log_util.h"
 
 namespace utils {
 
@@ -20,7 +21,7 @@ class LockFreeLinkedList {
     while (curr != &tail_) {
       tmp = curr;
       curr = ExtractPointer(curr->next_.load());
-      std::cout << "free " << tmp->val_ << std::endl;
+      debug_clog << "~LockFreeLinkedList free " << tmp->val_ << std::endl;
       delete tmp;
     }
   }
@@ -45,7 +46,7 @@ class LockFreeLinkedList {
         // directly set curr means being unmarked
         AtomicListNode* new_node(new AtomicListNode(value, curr));
         // if pred->next == curr then pred->next = new_node
-        bool res(std::atomic_compare_exchange_weak(&(pred->next_), &curr, new_node));
+        bool res(std::atomic_compare_exchange_strong(&(pred->next_), &curr, new_node));
         if (res) { return true; }
         // if failed, just retry
       }
@@ -66,13 +67,13 @@ class LockFreeLinkedList {
         AtomicListNode* unmarked_succ(ExtractPointer(curr->next_.load()));
         AtomicListNode* marked_succ(MarkPointer(unmarked_succ));
         // validate and mark: res := CAS(curr->next, <0, succ>, <1, succ>)
-        bool res(std::atomic_compare_exchange_weak(&(curr->next_), &unmarked_succ, marked_succ));
+        bool res(std::atomic_compare_exchange_strong(&(curr->next_), &unmarked_succ, marked_succ));
         if (res) {
           AtomicListNode* unmarked_curr(ExtractPointer(curr));
           // change pointer: CAS(pred->next, <0, curr>, <0, succ>)
-          std::atomic_compare_exchange_weak(&(pred->next_), &unmarked_curr, unmarked_succ);
+          std::atomic_compare_exchange_strong(&(pred->next_), &unmarked_curr, unmarked_succ);
           // TODO: find a way to delete it
-          delete unmarked_curr;
+          // delete unmarked_curr;
           return true;
         }
         // if validation failed, just retry
@@ -108,12 +109,12 @@ class LockFreeLinkedList {
         bool marked_flag(IsMarked(unmarked_curr->next_.load()));
         // clear all marked node while moving forward
         while (marked_flag) {
-          bool res(std::atomic_compare_exchange_weak(&(unmarked_pred->next_), &unmarked_curr, unmarked_succ));
+          bool res(std::atomic_compare_exchange_strong(&(unmarked_pred->next_), &unmarked_curr, unmarked_succ));
           if (!res) {
             goto retry;
           } else {
             // TODO: find a way to delete it
-            delete unmarked_curr;
+            // delete unmarked_curr;
             // move forward
             unmarked_curr = unmarked_succ;
             unmarked_succ = ExtractPointer(unmarked_curr->next_.load());
@@ -132,6 +133,9 @@ class LockFreeLinkedList {
       }
     }
   }
+
+ public:
+  static constexpr auto name_ = "LockFreeLinkedList";
 };
 
 } // namespace utils
