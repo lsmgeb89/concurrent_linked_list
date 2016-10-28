@@ -68,8 +68,8 @@ template <typename WindowType> class WindowGuard {
   }
 
   ~WindowGuard(void) {
-    window_.first->Unlock();
     window_.second->Unlock();
+    window_.first->Unlock();
   }
  private:
   WindowType window_;
