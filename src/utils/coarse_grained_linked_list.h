@@ -28,7 +28,7 @@ class LockedLinkedList {
 
   bool Search(const int& value) {
     ListNode* curr(head_.next_);
-    while (curr != &tail_) {
+    while (curr && curr != &tail_) {
       if (curr->val_ == value) {
         return true;
       }
