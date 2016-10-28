@@ -106,7 +106,7 @@ class LazyLinkedList {
     LockedListNode* pred(&head_);
     LockedListNode* curr(head_.next_);
     while (curr->val_ < key) {
-      pred = pred->next_;
+      pred = curr;
       curr = curr->next_;
     }
     return std::make_pair(pred, curr);
