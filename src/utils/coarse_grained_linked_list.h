@@ -28,45 +28,43 @@ class LockedLinkedList {
 
   bool Search(const int& value) {
     ListNode* curr(head_.next_);
-    while (curr && curr != &tail_) {
-      if (curr->val_ == value) {
-        return true;
-      }
+    while (curr && curr->val_ < value) {
       curr = curr->next_;
     }
-    return false;
+    return (curr && curr->val_ == value);
   }
 
   bool Insert(const int& value) {
     std::lock_guard<std::mutex> guard(mutex_);
     ListNode* pred(&head_);
     ListNode* curr(head_.next_);
-    while (curr) {
-      if (curr->val_ > value) {
-        pred->next_ = new ListNode(value, curr);
-        break;
-      }
+    while (curr->val_ < value) {
       pred = pred->next_;
       curr = curr->next_;
     }
-    // always return true for testing
-    return true;
+    if (curr->val_ == value) {
+      return false;
+    } else {
+      pred->next_ = new ListNode(value, curr);
+      return true;
+    }
   }
 
   bool Delete(const int& value) {
     std::lock_guard<std::mutex> guard(mutex_);
     ListNode* pred(&head_);
     ListNode* curr(head_.next_);
-    while (curr != &tail_) {
-      if (curr->val_ == value) {
-        pred->next_ = curr->next_;
-        delete curr;
-        return true;
-      }
+    while (curr->val_ < value) {
       pred = pred->next_;
       curr = curr->next_;
     }
-    return false;
+    if (curr->val_ == value) {
+      pred->next_ = curr->next_;
+      delete curr;
+      return true;
+    } else {
+      return false;
+    }
   }
 
   std::string ToString(void) {
