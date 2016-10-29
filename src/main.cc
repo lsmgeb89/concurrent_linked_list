@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
                                    std::make_pair(utils::Delete, 0.01f)});
   utils::TestThroughput thru_mix("mixed",
                                  {std::make_pair(utils::Search, 0.7f),
-                                  std::make_pair(utils::Search, 0.2f),
+                                  std::make_pair(utils::Insert, 0.2f),
                                   std::make_pair(utils::Delete, 0.1f)});
   utils::TestThroughput thru_write("write-dominated",
                                    {std::make_pair(utils::Search, 0.0f),
