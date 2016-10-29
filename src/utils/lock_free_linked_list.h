@@ -47,8 +47,12 @@ class LockFreeLinkedList {
         AtomicListNode* new_node(new AtomicListNode(value, curr));
         // if pred->next == curr then pred->next = new_node
         bool res(std::atomic_compare_exchange_strong(&(pred->next_), &curr, new_node));
-        if (res) { return true; }
-        // if failed, just retry
+        if (res) {
+          return true;
+        } else {
+          // failed, just retry
+          delete new_node;
+        }
       }
     }
   }
