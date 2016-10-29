@@ -2,22 +2,18 @@
 #include "tester.h"
 
 int main(int argc, char* argv[]) {
-  std::size_t thread_num(0);
-  std::size_t operation_num(0);
-  std::size_t test_times(0);
-
-  if (argc != 4) {
+  if (argc != 5) {
     std::cerr << "Wrong Parameter!" << std::endl;
     std::string p(argv[0]);
     std::cerr << p.substr(p.rfind('/') + 1)
-              << " <thread_num> <operation_num> <test_times>" << std::endl;
+              << " <thread_num> <operation_num> <test_times> <max_key>" << std::endl;
     return EXIT_FAILURE;
-  } else {
-    thread_num = static_cast<std::size_t>(std::stoul(argv[1]));
-    operation_num = static_cast<std::size_t>(std::stoul(argv[2]));
-    test_times = static_cast<std::size_t>(std::stoul(argv[3]));
   }
 
+  std::size_t thread_num(static_cast<std::size_t>(std::stoul(argv[1])));
+  std::size_t operation_num(static_cast<std::size_t>(std::stoul(argv[2])));
+  std::size_t test_times(static_cast<std::size_t>(std::stoul(argv[3])));
+  std::size_t max_key(static_cast<std::size_t>(std::stoul(argv[4])));
   utils::TestThroughput thru_read("read-dominated",
                                   {std::make_pair(utils::Search, 0.9f),
                                    std::make_pair(utils::Insert, 0.09f),
@@ -31,7 +27,7 @@ int main(int argc, char* argv[]) {
                                     std::make_pair(utils::Insert, 0.5f),
                                     std::make_pair(utils::Delete, 0.5f)});
   std::vector<utils::TestThroughput> v = {thru_read, thru_mix, thru_write};
-  utils::Tester t(thread_num, operation_num, test_times, v);
+  utils::Tester t(thread_num, operation_num, test_times, v, {0, max_key});
   t.Test();
   debug_cout << t.ResultToString();
 

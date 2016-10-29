@@ -28,6 +28,7 @@ struct TestOperation {
   int parameter_;
 };
 
+typedef std::pair<int, int> KeySpace;
 typedef std::pair<OperationType, float> OpThroughput;
 typedef std::chrono::duration<double, std::nano> TestResult;
 
@@ -61,15 +62,26 @@ class TestThroughput {
   std::array<OpThroughput, 3> profile_;
 };
 
+#ifndef NDEBUG
 #define CALL_FUNC_IF_MATCH(FUNC_NAME)                               \
 if (operation.type_ == FUNC_NAME) {                                 \
-  debug_clog << "[thread " << id << "] " << linked_list_.name_      \
+  sstr.str("");                                                     \
+  sstr << "[thread " << id << "] " << linked_list_.name_            \
              << "::"#FUNC_NAME"(" << operation.parameter_ << ")\n"; \
+  std::clog << sstr.str();                                          \
   ret = linked_list_.FUNC_NAME(operation.parameter_);               \
-  debug_clog << "[thread " << id << "] " << linked_list_.name_      \
+  sstr.str("");                                                     \
+  sstr << "[thread " << id << "] " << linked_list_.name_            \
              << "::"#FUNC_NAME"(" << operation.parameter_ << ") = " \
              << std::boolalpha << ret << "\n";                      \
+  std::clog << sstr.str();                                          \
 }
+#else
+#define CALL_FUNC_IF_MATCH(FUNC_NAME)           \
+if (operation.type_ == FUNC_NAME) {             \
+  linked_list_.FUNC_NAME(operation.parameter_); \
+}
+#endif
 
 template <typename ListType> class UnitTester {
  public:
@@ -79,7 +91,10 @@ template <typename ListType> class UnitTester {
   static std::string GetName(void) { return ListType::name_; }
 
   void ThreadFunc(const std::size_t& id, const std::vector<TestOperation>& operation_list) {
+#ifndef NDEBUG
     bool ret;
+    std::stringstream sstr;
+#endif
     for (auto operation : operation_list) {
       CALL_FUNC_IF_MATCH(Search)
       CALL_FUNC_IF_MATCH(Insert)
@@ -88,6 +103,9 @@ template <typename ListType> class UnitTester {
   }
 
   TestResult UnitTest(const std::vector<std::vector<TestOperation>>& operation_list_group) {
+    debug_clog << "--- [" << linked_list_.name_ << "] Thread = "
+               << operation_list_group.size() << " Concurrent History ---\n";
+
     auto begin = std::chrono::steady_clock::now();
 
     for (std::size_t i(0); i < operation_list_group.size(); i++) {
@@ -100,11 +118,9 @@ template <typename ListType> class UnitTester {
 
     auto end = std::chrono::steady_clock::now();
 
-#ifndef NDEBUG
-    std::clog << "[" << linked_list_.name_ << "] Thread = " << operation_list_group.size() << ", Total Time = "
+    debug_clog << "--- [" << linked_list_.name_ << "] Thread = " << operation_list_group.size() << ", Total Time = "
               << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count()
-              << " (ns)" << std::endl;
-#endif
+              << " (ns) ---" << std::endl;
 
     thread_pool.clear();
     return (end - begin);
@@ -120,14 +136,16 @@ class Tester {
   Tester(const std::size_t& max_thread_num,
          const std::size_t& operation_num,
          const std::size_t& repeat_times,
-         const std::vector<TestThroughput>& throughput_list)
+         const std::vector<TestThroughput>& throughput_list,
+         const KeySpace& key_space)
     : max_thread_num_(max_thread_num),
       operation_num_(operation_num),
       repeat_times_(repeat_times),
       throughput_list_(throughput_list),
-      dist_(1, 100) {
+      profile_dist_(0, throughput_list.front().profile_.size() - 1),
+      key_dist_(key_space.first, key_space.second),
+      dist_(0, std::numeric_limits<std::size_t>::max()) {
     random_engine_.seed(std::random_device()());
-    // fix the sizes
     test_results_.resize(throughput_list.size());
     for (auto& test_result : test_results_) {
       std::get<0>(test_result).resize(max_thread_num_);
@@ -153,12 +171,12 @@ class Tester {
     for (auto p : throughput.profile_) {
       auto limit(std::floor(p.second * operation_num));
       for (auto i(0); i < limit; ++i) {
-        *op_iter++ = {p.first, static_cast<int>(dist_(random_engine_))};
+        *op_iter++ = {p.first, key_dist_(random_engine_)};
       }
     }
     for (; op_iter != operations.end(); ++op_iter) {
-      *op_iter = {throughput.profile_.at(dist_(random_engine_) % throughput.profile_.size()).first,
-                  static_cast<int>(dist_(random_engine_))};
+      *op_iter = {throughput.profile_.at(profile_dist_(random_engine_)).first,
+                  key_dist_(random_engine_)};
     }
 
     // randomly sort all operations
@@ -180,6 +198,8 @@ class Tester {
     for (std::size_t i = 0; i < throughput_list_.size(); i++) {
       for (std::size_t t_num = 1; t_num <= max_thread_num_; t_num++) {
         // For each thread number, we test multiple times
+        debug_clog << "*** Profile: " << throughput_list_.at(i).name_ << " "
+                   << t_num << " thread(s) test begins ***\n";
         for (std::size_t r = 0; r < repeat_times_; r++) {
           std::vector<std::vector<TestOperation>> operation_list_group;
           GenerateOperations(throughput_list_.at(i), t_num, operation_num_, operation_list_group);
@@ -239,7 +259,9 @@ class Tester {
   std::vector<TestThroughput> throughput_list_;
 
   std::mt19937 random_engine_;
-  std::uniform_int_distribution<std::mt19937::result_type> dist_;
+  std::uniform_int_distribution<std::size_t> profile_dist_;
+  std::uniform_int_distribution<int> key_dist_;
+  std::uniform_int_distribution<std::size_t> dist_;
 
   std::vector<std::tuple<std::vector<TestResult>, std::vector<TestResult>, std::vector<TestResult>>> test_results_;
 };

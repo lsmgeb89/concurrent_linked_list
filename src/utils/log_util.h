@@ -9,7 +9,7 @@ static std::mutex mutex_log_;
 
 #ifndef NDEBUG
 #define debug_clog std::clog << lock_with(mutex_log_)
-#define debug_cout std::cout << lock_with(mutex_log_)
+#define debug_cout std::clog << lock_with(mutex_log_)
 #else
 class NullBuffer : public std::streambuf {
 public:
