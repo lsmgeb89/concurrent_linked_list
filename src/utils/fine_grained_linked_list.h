@@ -27,13 +27,10 @@ class LazyLinkedList {
 
   bool Search(const int& value) {
     LockedListNode* curr(head_.next_);
-    while (curr != &tail_) {
-      if (curr->val_ == value && !curr->marked_) {
-        return true;
-      }
+    while (curr && curr->val_ < value) {
       curr = curr->next_;
     }
-    return false;
+    return (curr && curr->val_ == value && !curr->marked_);
   }
 
   bool Insert(const int& value) {
