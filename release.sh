@@ -17,13 +17,13 @@ cp -ar src/* "$RELEASE_FOLDER"/src
 # copy readme and scripts
 cp readme.txt *_*.sh "$RELEASE_FOLDER"
 # compile report
-# pushd report > /dev/null 2>&1
-# pdflatex -output-directory="$RELEASE_FOLDER"/report report.tex > /dev/null 2>&1
-# popd > /dev/null 2>&1
+pushd report > /dev/null 2>&1
+pdflatex -output-directory="$RELEASE_FOLDER"/report report.tex > /dev/null 2>&1
+popd > /dev/null 2>&1
 # clean auxiliary files
-# pushd "$RELEASE_FOLDER"/report > /dev/null 2>&1
-# rm report.aux report.log report.out
-# popd > /dev/null 2>&1
+pushd "$RELEASE_FOLDER"/report > /dev/null 2>&1
+rm report.aux report.log report.out
+popd > /dev/null 2>&1
 # package all files
 pushd "${HOME}" > /dev/null 2>&1
 zip -r "$RELEASE_ZIP" "$NAME"/*
