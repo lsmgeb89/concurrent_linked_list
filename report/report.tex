@@ -51,7 +51,52 @@ In order to limit the maximum size of list to 1000 keys, we set the maximum oper
 For each type of throughput, we randomly generate 2000 operations according to the profile and then distribute these operations randomly to each thread as parameter. For each implementation, we launch $1 \sim 32$ threads to execution all 2000 operations and we do this 16 times to get average running time of all threads in nanosecond. And in order to add degree of contention, we limit the key space small which is from 0 to 9. So command \lstinline{concurrent_linked_list 32 2000 16 9} are used to launch testing, in which 32 is maximum thread number, 2000 is operation number, 16 is repeated times and 9 is maximum key value.
 
 \section*{How to Test Correctness}
-For each operation of each thread, we log on the invocation and response event. The macro \lstinline{CALL_FUNC_IF_MATCH} is intended for this logging. So for each unit test, we can get a concurrent history of all threads. And we manually check all concurrent histories to see whether they are all linearizability. If all the concurrent histories tested of a implementation are linearizability, we can say the implementation is correct with high probability. In order to achieve that and conveniently for manually checking, we use command \lstinline{concurrent_linked_list 5 20 1 4} to test correctness. Noted that in the parameter, we keep key space very small to highly increase degree of contention.
+For each operation of each thread, we log on the invocation and response event. The macro \lstinline{CALL_FUNC_IF_MATCH} is intended for this logging. So for each unit test, we can get a concurrent history of all threads. And we manually check all concurrent histories to see whether they are all linearizability. If all the concurrent histories tested of a implementation are linearizability, we can say the implementation is correct with high probability. In order to achieve that and conveniently for manually checking, we use command \lstinline{concurrent_linked_list 5 20 1 4} to test correctness. Noted that in the parameter, we keep key space very small to highly increase degree of contention. Below is a part of actual test result to just show the idea. Whole correctness verfication needs thorough tests. It is a concurrent history of lock-free version with $4$ threads and $20$ operations. We can see it is linearizability.
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+--- [LockFreeLinkedList] Thread = 4 Concurrent History ---
+[thread 0] LockFreeLinkedList::Insert(2)
+[thread 1] LockFreeLinkedList::Insert(2)
+[thread 2] LockFreeLinkedList::Insert(1)
+[thread 1] LockFreeLinkedList::Insert(2) = false
+[thread 3] LockFreeLinkedList::Delete(2)
+[thread 2] LockFreeLinkedList::Insert(1) = true
+[thread 1] LockFreeLinkedList::Insert(0)
+[thread 0] LockFreeLinkedList::Insert(2) = true
+[thread 3] LockFreeLinkedList::Delete(2) = true
+[thread 2] LockFreeLinkedList::Delete(1)
+[thread 1] LockFreeLinkedList::Insert(0) = true
+[thread 0] LockFreeLinkedList::Delete(0)
+[thread 3] LockFreeLinkedList::Insert(0)
+[thread 2] LockFreeLinkedList::Delete(1) = true
+[thread 1] LockFreeLinkedList::Insert(0)
+[thread 0] LockFreeLinkedList::Delete(0) = true
+[thread 3] LockFreeLinkedList::Insert(0) = true
+[thread 2] LockFreeLinkedList::Insert(1)
+[thread 1] LockFreeLinkedList::Insert(0) = false
+[thread 0] LockFreeLinkedList::Delete(1)
+[thread 3] LockFreeLinkedList::Insert(1)
+[thread 2] LockFreeLinkedList::Insert(1) = true
+[thread 1] LockFreeLinkedList::Delete(0)
+[thread 0] LockFreeLinkedList::Delete(1) = true
+[thread 3] LockFreeLinkedList::Insert(1) = true
+[thread 2] LockFreeLinkedList::Insert(2)
+[thread 1] LockFreeLinkedList::Delete(0) = true
+[thread 0] LockFreeLinkedList::Delete(2)
+[thread 3] LockFreeLinkedList::Delete(3)
+[thread 2] LockFreeLinkedList::Insert(2) = true
+[thread 1] LockFreeLinkedList::Delete(0)
+[thread 0] LockFreeLinkedList::Delete(2) = true
+[thread 3] LockFreeLinkedList::Delete(3) = false
+[thread 2] LockFreeLinkedList::Insert(0)
+[thread 1] LockFreeLinkedList::Delete(0) = false
+[thread 0] LockFreeLinkedList::Delete(1)
+[thread 0] LockFreeLinkedList::Delete(1) = true
+[thread 3] LockFreeLinkedList::Delete(1)
+[thread 2] LockFreeLinkedList::Insert(0) = true
+[thread 3] LockFreeLinkedList::Delete(1) = false
+--- [LockFreeLinkedList] Thread = 4, Total Time = 584547 (ns) ---
+\end{lstlisting}
 
 \section*{Experiment Results}
 For each throughput, we generate a plot to compare three implementation's performance. Here they are.
